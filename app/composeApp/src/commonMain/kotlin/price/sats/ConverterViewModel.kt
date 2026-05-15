@@ -23,6 +23,13 @@ sealed interface InputSource {
 }
 
 /**
+ * Which Bitcoin denomination is currently editable. Sticky across input
+ * source changes so that switching to a fiat and back doesn't lose the user's
+ * preferred unit.
+ */
+enum class BitcoinUnit { SATS, BTC }
+
+/**
  * Holds the converter's state across configuration changes (rotation, locale
  * switch, dark-mode toggle, etc.) and runs the 65s background refresh tick.
  *
@@ -54,6 +61,10 @@ class ConverterViewModel(
     var themeOverride: Boolean? by mutableStateOf(prefs.themeOverride())
         private set
 
+    /** Which Bitcoin unit's field is currently editable. */
+    var bitcoinUnit: BitcoinUnit by mutableStateOf(prefs.bitcoinUnit())
+        private set
+
     val supportedFiats: List<String> = core.supportedFiats()
 
     val isAnyLoading: Boolean
@@ -78,6 +89,18 @@ class ConverterViewModel(
         inputAmount = amount
         prefs.setInputSource(source)
         prefs.setInputAmount(amount)
+        // Typing directly into a Bitcoin field also defines the editable unit.
+        when (source) {
+            InputSource.Sats -> if (bitcoinUnit != BitcoinUnit.SATS) {
+                bitcoinUnit = BitcoinUnit.SATS
+                prefs.setBitcoinUnit(BitcoinUnit.SATS)
+            }
+            InputSource.Btc -> if (bitcoinUnit != BitcoinUnit.BTC) {
+                bitcoinUnit = BitcoinUnit.BTC
+                prefs.setBitcoinUnit(BitcoinUnit.BTC)
+            }
+            is InputSource.Fiat -> {} // bitcoinUnit stays whatever it was
+        }
     }
 
     fun toggleFiat(fiat: String) {
@@ -122,6 +145,32 @@ class ConverterViewModel(
         val next = !current
         themeOverride = next
         prefs.setThemeOverride(next)
+    }
+
+    /**
+     * Switch which Bitcoin unit's field is editable. Sets the input source
+     * to that unit and converts the current canonical sats value into the
+     * new field's representation so the user sees the same amount in the
+     * new unit immediately.
+     */
+    fun selectBitcoinUnit(unit: BitcoinUnit) {
+        if (bitcoinUnit == unit && inputSource is InputSource.Sats && unit == BitcoinUnit.SATS) return
+        if (bitcoinUnit == unit && inputSource is InputSource.Btc && unit == BitcoinUnit.BTC) return
+        val sats = computeSats(core, inputSource, inputAmount, snapshots)
+        bitcoinUnit = unit
+        prefs.setBitcoinUnit(unit)
+        when (unit) {
+            BitcoinUnit.SATS -> {
+                inputSource = InputSource.Sats
+                inputAmount = sats?.toString() ?: "0"
+            }
+            BitcoinUnit.BTC -> {
+                inputSource = InputSource.Btc
+                inputAmount = sats?.let { core.convertSatsToBtc(it) } ?: "0"
+            }
+        }
+        prefs.setInputSource(inputSource)
+        prefs.setInputAmount(inputAmount)
     }
 
     fun displayedSats(): String =

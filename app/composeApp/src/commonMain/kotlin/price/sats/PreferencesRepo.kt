@@ -57,10 +57,19 @@ class PreferencesRepo(private val settings: Settings) {
         else settings.putBoolean(KEY_THEME_DARK, dark)
     }
 
+    fun bitcoinUnit(): BitcoinUnit =
+        if (settings.getStringOrNull(KEY_BTC_UNIT) == "btc") BitcoinUnit.BTC
+        else BitcoinUnit.SATS
+
+    fun setBitcoinUnit(unit: BitcoinUnit) {
+        settings.putString(KEY_BTC_UNIT, if (unit == BitcoinUnit.BTC) "btc" else "sats")
+    }
+
     private companion object {
         const val KEY_FIATS = "selectedFiats"
         const val KEY_INPUT_AMOUNT = "inputAmount"
         const val KEY_INPUT_SOURCE = "inputSource"
         const val KEY_THEME_DARK = "themeDark"
+        const val KEY_BTC_UNIT = "bitcoinUnit"
     }
 }

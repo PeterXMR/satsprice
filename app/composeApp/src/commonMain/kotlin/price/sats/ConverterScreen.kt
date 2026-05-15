@@ -31,6 +31,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -40,12 +43,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -118,17 +124,13 @@ fun ConverterScreen(vm: ConverterViewModel = koinViewModel()) {
                 fiat = primaryFiat,
             )
 
-            AmountField(
-                label = "Sats",
-                value = vm.displayedSats(),
-                onChange = { vm.setInput(InputSource.Sats, it) },
-                keyboardType = KeyboardType.Number,
-            )
-            AmountField(
-                label = "BTC",
-                value = vm.displayedBtc(),
-                onChange = { vm.setInput(InputSource.Btc, it) },
-                keyboardType = KeyboardType.Decimal,
+            BitcoinSection(
+                satsValue = vm.displayedSats(),
+                btcValue = vm.displayedBtc(),
+                activeUnit = vm.bitcoinUnit,
+                onSatsChange = { vm.setInput(InputSource.Sats, it) },
+                onBtcChange = { vm.setInput(InputSource.Btc, it) },
+                onUnitSelect = vm::selectBitcoinUnit,
             )
 
             vm.selectedFiats.forEach { fiat ->
@@ -232,17 +234,85 @@ private fun AmountField(
     value: String,
     onChange: (String) -> Unit,
     keyboardType: KeyboardType,
+    readOnly: Boolean = false,
+    focusRequester: FocusRequester? = null,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
+        readOnly = readOnly,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         textStyle = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (focusRequester != null) it.focusRequester(focusRequester) else it },
         shape = RoundedCornerShape(14.dp),
     )
+}
+
+/**
+ * The merged Bitcoin section — sats and BTC are the same currency in different
+ * units. A SegmentedButton between them picks which side is editable; the
+ * other side mirrors the canonical value as a read-only display.
+ *
+ * Tapping a segment immediately moves focus to that field so the keyboard
+ * opens without a second tap.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BitcoinSection(
+    satsValue: String,
+    btcValue: String,
+    activeUnit: BitcoinUnit,
+    onSatsChange: (String) -> Unit,
+    onBtcChange: (String) -> Unit,
+    onUnitSelect: (BitcoinUnit) -> Unit,
+) {
+    val satsFocus = remember { FocusRequester() }
+    val btcFocus = remember { FocusRequester() }
+    LaunchedEffect(activeUnit) {
+        runCatching {
+            when (activeUnit) {
+                BitcoinUnit.SATS -> satsFocus.requestFocus()
+                BitcoinUnit.BTC -> btcFocus.requestFocus()
+            }
+        }
+    }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        AmountField(
+            label = "Sats",
+            value = satsValue,
+            onChange = onSatsChange,
+            keyboardType = KeyboardType.Number,
+            readOnly = activeUnit != BitcoinUnit.SATS,
+            focusRequester = satsFocus,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = activeUnit == BitcoinUnit.SATS,
+                onClick = { onUnitSelect(BitcoinUnit.SATS) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) { Text("Sats") }
+            SegmentedButton(
+                selected = activeUnit == BitcoinUnit.BTC,
+                onClick = { onUnitSelect(BitcoinUnit.BTC) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) { Text("BTC") }
+        }
+        AmountField(
+            label = "BTC",
+            value = btcValue,
+            onChange = onBtcChange,
+            keyboardType = KeyboardType.Decimal,
+            readOnly = activeUnit != BitcoinUnit.BTC,
+            focusRequester = btcFocus,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
