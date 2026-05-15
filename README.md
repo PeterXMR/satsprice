@@ -1,6 +1,6 @@
 # SatsPrice (Rust core + Kotlin Multiplatform UI)
 
-A client-only Bitcoin price ticker and Sats ↔ BTC ↔ fiat converter for Android and iOS.
+A client-only sats price ticker and Sats ↔ fiat converter for Android and iOS.
 No backend — all logic runs on the device.
 
 ## Architecture
@@ -8,7 +8,7 @@ No backend — all logic runs on the device.
 - `core/` — Rust workspace, the "compiled core":
   - `price-sources/` — exchange/aggregator adapters (Coinbase, Kraken, Coingecko, Bitstamp)
   - `aggregator/` — median + σ-rejection across sources
-  - `convert/` — sats ↔ BTC ↔ fiat math (`rust_decimal`)
+  - `convert/` — sats ↔ fiat math (`rust_decimal`)
   - `cache/` — in-memory + persisted last-known price
   - `ffi/` — single UniFFI surface exposed to mobile
 - `app/` — KMP + Compose Multiplatform app:
