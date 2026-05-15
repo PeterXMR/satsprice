@@ -29,6 +29,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -313,6 +314,11 @@ private fun CurrencyPickerSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var query by remember { mutableStateOf("") }
+    val filtered = remember(query, allFiats) {
+        if (query.isBlank()) allFiats
+        else allFiats.filter { it.contains(query.trim(), ignoreCase = true) }
+    }
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = onDismiss,
@@ -333,10 +339,33 @@ private fun CurrencyPickerSheet(
                         )
                         FilledTonalButton(onClick = onDismiss) { Text("Done") }
                     }
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = { Text("Search currency code") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        trailingIcon = if (query.isNotEmpty()) {
+                            { TextButton(onClick = { query = "" }) { Text("Clear") } }
+                        } else null,
+                    )
                     HorizontalDivider()
                 }
             }
-            items(allFiats, key = { it }) { fiat ->
+            if (filtered.isEmpty()) {
+                item {
+                    Text(
+                        text = "No currency matches \"$query\"",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(20.dp),
+                    )
+                }
+            }
+            items(filtered, key = { it }) { fiat ->
                 CurrencyRow(
                     fiat = fiat,
                     selected = fiat in selected,

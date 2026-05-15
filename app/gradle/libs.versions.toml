@@ -11,6 +11,9 @@ jna = "5.15.0"
 jetbrains-lifecycle = "2.8.4"
 # Koin 4.x is the first major to ship KMP/Compose Multiplatform first-class.
 koin = "4.0.0"
+# multiplatform-settings: portable key-value persistence (SharedPreferences /
+# NSUserDefaults / java.util.prefs.Preferences depending on the target).
+multiplatform-settings = "1.3.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -23,6 +26,7 @@ koin-core-viewmodel = { module = "io.insert-koin:koin-core-viewmodel", version.r
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

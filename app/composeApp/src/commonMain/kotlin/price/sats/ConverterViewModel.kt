@@ -26,20 +26,28 @@ sealed interface InputSource {
  * Holds the converter's state across configuration changes (rotation, locale
  * switch, dark-mode toggle, etc.) and runs the 65s background refresh tick.
  *
+ * Persists three things across process restart via [PreferencesRepo]:
+ *  - the set of selected fiats
+ *  - which field the user was last editing
+ *  - the amount in that field
+ *
  * The tick is 65s rather than 60s on purpose — the Rust core cache has a 60s
  * TTL, so a 60s poll would race the cache boundary and sometimes return a
  * stale snapshot. 65s guarantees the cache has expired by the time we ask.
  */
-class ConverterViewModel(private val core: PriceCore) : ViewModel() {
+class ConverterViewModel(
+    private val core: PriceCore,
+    private val prefs: PreferencesRepo,
+) : ViewModel() {
 
-    val selectedFiats = mutableStateListOf("usd")
+    val selectedFiats = mutableStateListOf<String>().apply { addAll(prefs.selectedFiats()) }
     val snapshots = mutableStateMapOf<String, PriceSnapshot>()
     val loadingFiats = mutableStateMapOf<String, Boolean>()
     val errorFiats = mutableStateMapOf<String, String>()
 
-    var inputSource: InputSource by mutableStateOf(InputSource.Sats)
+    var inputSource: InputSource by mutableStateOf(prefs.inputSource())
         private set
-    var inputAmount: String by mutableStateOf("100000000")
+    var inputAmount: String by mutableStateOf(prefs.inputAmount())
         private set
 
     val supportedFiats: List<String> = core.supportedFiats()
@@ -64,28 +72,34 @@ class ConverterViewModel(private val core: PriceCore) : ViewModel() {
     fun setInput(source: InputSource, amount: String) {
         inputSource = source
         inputAmount = amount
+        prefs.setInputSource(source)
+        prefs.setInputAmount(amount)
     }
 
     fun toggleFiat(fiat: String) {
         if (selectedFiats.contains(fiat)) {
-            // Refuse to remove the last one — the headline & math need a primary.
-            if (selectedFiats.size > 1) selectedFiats.remove(fiat)
+            if (selectedFiats.size > 1) {
+                selectedFiats.remove(fiat)
+                prefs.setSelectedFiats(selectedFiats.toList())
+            }
         } else {
             selectedFiats.add(fiat)
+            prefs.setSelectedFiats(selectedFiats.toList())
             viewModelScope.launch { loadPrice(fiat) }
         }
     }
 
     fun removeFiat(fiat: String) {
         if (selectedFiats.size <= 1) return
-        // If the user is currently editing this fiat, fall back to Sats with
-        // the last-known canonical sats value so the screen stays coherent.
         if ((inputSource as? InputSource.Fiat)?.code == fiat) {
             val current = computeSats(core, inputSource, inputAmount, snapshots)
             inputSource = InputSource.Sats
             inputAmount = current?.toString() ?: "100000000"
+            prefs.setInputSource(inputSource)
+            prefs.setInputAmount(inputAmount)
         }
         selectedFiats.remove(fiat)
+        prefs.setSelectedFiats(selectedFiats.toList())
     }
 
     fun refreshAll() {

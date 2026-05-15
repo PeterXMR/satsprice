@@ -27,6 +27,7 @@ kotlin {
             implementation(libs.koin.core.viewmodel)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.multiplatform.settings)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
