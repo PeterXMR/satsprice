@@ -1,6 +1,7 @@
 package price.sats
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -24,6 +28,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -55,6 +61,8 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ConverterScreen(vm: ConverterViewModel = koinViewModel()) {
     var pickerOpen by remember { mutableStateOf(false) }
+    val systemDark = isSystemInDarkTheme()
+    val effectiveDark = vm.themeOverride ?: systemDark
 
     val primaryFiat = vm.selectedFiats.firstOrNull() ?: "usd"
     val primarySnapshot = vm.snapshots[primaryFiat]
@@ -67,6 +75,16 @@ fun ConverterScreen(vm: ConverterViewModel = koinViewModel()) {
             TopAppBar(
                 title = { Text("SatsPrice") },
                 actions = {
+                    IconButton(onClick = { vm.toggleTheme(systemDark) }) {
+                        Icon(
+                            // Show the icon of the *target* mode — sun while
+                            // dark (tap to go light), moon while light.
+                            imageVector = if (effectiveDark) Icons.Filled.LightMode
+                                          else Icons.Filled.DarkMode,
+                            contentDescription = if (effectiveDark) "Switch to light mode"
+                                                 else "Switch to dark mode",
+                        )
+                    }
                     FilledTonalButton(
                         onClick = { vm.refreshAll() },
                         enabled = !anyLoading,

@@ -49,9 +49,18 @@ class PreferencesRepo(private val settings: Settings) {
         settings.putString(KEY_INPUT_SOURCE, raw)
     }
 
+    /** null = follow system, true = forced dark, false = forced light. */
+    fun themeOverride(): Boolean? = settings.getBooleanOrNull(KEY_THEME_DARK)
+
+    fun setThemeOverride(dark: Boolean?) {
+        if (dark == null) settings.remove(KEY_THEME_DARK)
+        else settings.putBoolean(KEY_THEME_DARK, dark)
+    }
+
     private companion object {
         const val KEY_FIATS = "selectedFiats"
         const val KEY_INPUT_AMOUNT = "inputAmount"
         const val KEY_INPUT_SOURCE = "inputSource"
+        const val KEY_THEME_DARK = "themeDark"
     }
 }

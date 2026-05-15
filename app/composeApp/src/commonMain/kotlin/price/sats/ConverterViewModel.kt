@@ -50,6 +50,10 @@ class ConverterViewModel(
     var inputAmount: String by mutableStateOf(prefs.inputAmount())
         private set
 
+    /** null = follow system, true = forced dark, false = forced light. */
+    var themeOverride: Boolean? by mutableStateOf(prefs.themeOverride())
+        private set
+
     val supportedFiats: List<String> = core.supportedFiats()
 
     val isAnyLoading: Boolean
@@ -106,6 +110,18 @@ class ConverterViewModel(
         viewModelScope.launch {
             selectedFiats.forEach { launch { loadPrice(it) } }
         }
+    }
+
+    /**
+     * Toggle between explicit light and dark, ignoring the (unspecified)
+     * "follow system" state. Once toggled the choice sticks until the user
+     * clears it from a future settings screen.
+     */
+    fun toggleTheme(systemDark: Boolean) {
+        val current = themeOverride ?: systemDark
+        val next = !current
+        themeOverride = next
+        prefs.setThemeOverride(next)
     }
 
     fun displayedSats(): String =
