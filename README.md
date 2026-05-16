@@ -42,6 +42,13 @@ just build-ios         # build .xcframework (Mac + full Xcode required)
 just run-android       # install + launch on connected device/emulator
 ```
 
+## Releasing
+
+Tag pushes (`vX.Y.Z` or `vX.Y.Z-suffix`) auto-publish a GitHub Release with
+the APK attached. See [docs/RELEASING.md](docs/RELEASING.md) for the full
+release flow, pre-release vs. release semantics, and the roadmap to
+signed/minified production builds.
+
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
