@@ -1,0 +1,102 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs on the same ref. PRs and main pushes get fresh CI;
+# stale ones (e.g. force-pushed PR commits) are killed to save runner minutes.
+# Tag pushes are NOT cancelled — each tag should produce exactly one release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    # Needs write access so the release step (on tag pushes) can attach the APK.
+    # For non-tag runs this permission is unused but harmless.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Rust toolchain (+ Android targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Cache Rust build (core workspace)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      # Gate the Android build on the Rust core being healthy. Fast-failing here
+      # avoids spending Gradle setup + cross-compile time on a broken core.
+      - name: Rust fmt check
+        run: cargo fmt --manifest-path core/Cargo.toml -- --check
+
+      - name: Rust clippy (deny warnings)
+        run: cargo clippy --manifest-path core/Cargo.toml --all-targets -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --manifest-path core/Cargo.toml --all-features
+
+      - name: Install cargo-ndk (prebuilt)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+
+      - name: Set up Gradle (caches ~/.gradle)
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Rust core for 4 Android ABIs
+        working-directory: core/ffi
+        run: |
+          cargo ndk \
+            -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 \
+            -o ../../app/android/src/main/jniLibs \
+            build --release
+
+      - name: Assemble debug APK
+        working-directory: app
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SatsPrice-debug-${{ github.sha }}
+          path: app/composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      # Tag pushes additionally publish a GitHub Release with the APK attached.
+      # Tags matching a semver pre-release suffix (e.g. v1.2.3-preview1,
+      # v1.2.3-rc.1) are marked as pre-release; plain semver tags (v1.2.3)
+      # become a normal "Latest" release.
+      - name: Rename APK for release upload
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          cp app/composeApp/build/outputs/apk/debug/composeApp-debug.apk \
+             SatsPrice-${{ github.ref_name }}.apk
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SatsPrice-${{ github.ref_name }}.apk
+          # Anything with a hyphen after the version (v1.2.3-...) is a
+          # prerelease per semver. Plain v1.2.3 is a real release.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
