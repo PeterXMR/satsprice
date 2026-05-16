@@ -67,6 +67,13 @@ class ConverterViewModel(
 
     val supportedFiats: List<String> = core.supportedFiats()
 
+    /**
+     * Lifetime flag: has the initial auto-focus (the cold-start keyboard pop
+     * on the Sats field) already fired? Lives in the VM, not the composable,
+     * so navigating away and back to Converter doesn't re-trigger it.
+     */
+    var hasShownInitialKeyboard: Boolean = false
+
     val isAnyLoading: Boolean
         get() = loadingFiats.any { it.value }
 
@@ -145,6 +152,27 @@ class ConverterViewModel(
         val next = !current
         themeOverride = next
         prefs.setThemeOverride(next)
+    }
+
+    /** Settings-screen explicit set: null = follow system. */
+    fun applyThemeMode(value: Boolean?) {
+        themeOverride = value
+        prefs.setThemeOverride(value)
+    }
+
+    /** Settings-screen "Reset to USD only" — wipes all selected fiats back to default. */
+    fun resetSelectedFiats() {
+        selectedFiats.clear()
+        selectedFiats.add("usd")
+        prefs.setSelectedFiats(selectedFiats.toList())
+        if ((inputSource as? InputSource.Fiat)?.code != null &&
+            (inputSource as InputSource.Fiat).code != "usd") {
+            inputSource = InputSource.Sats
+            inputAmount = "100000000"
+            prefs.setInputSource(inputSource)
+            prefs.setInputAmount(inputAmount)
+        }
+        viewModelScope.launch { loadPrice("usd") }
     }
 
     /**
