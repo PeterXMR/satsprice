@@ -24,11 +24,11 @@ lint:
 
 # Format check
 fmt-check:
-    cargo fmt --manifest-path core/Cargo.toml -- --check
+    cargo fmt --manifest-path core/Cargo.toml --all -- --check
 
 # Format
 fmt:
-    cargo fmt --manifest-path core/Cargo.toml
+    cargo fmt --manifest-path core/Cargo.toml --all
 
 # ---- Cross-compile for Android ----
 

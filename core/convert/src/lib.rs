@@ -28,10 +28,7 @@ pub fn btc_to_sats(btc: Decimal) -> Result<u64, ConvertError> {
     let multiplied = btc
         .checked_mul(Decimal::from(SATS_PER_BTC))
         .ok_or(ConvertError::Overflow)?;
-    multiplied
-        .floor()
-        .to_u64()
-        .ok_or(ConvertError::Overflow)
+    multiplied.floor().to_u64().ok_or(ConvertError::Overflow)
 }
 
 /// BTC equivalent of a sat count, at 8 fractional digits.

@@ -44,7 +44,7 @@ jobs:
       # Gate the Android build on the Rust core being healthy. Fast-failing here
       # avoids spending Gradle setup + cross-compile time on a broken core.
       - name: Rust fmt check
-        run: cargo fmt --manifest-path core/Cargo.toml -- --check
+        run: cargo fmt --manifest-path core/Cargo.toml --all -- --check
 
       - name: Rust clippy (deny warnings)
         run: cargo clippy --manifest-path core/Cargo.toml --all-targets -- -D warnings

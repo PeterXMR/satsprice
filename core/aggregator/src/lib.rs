@@ -15,11 +15,7 @@ pub use types::{AggregateOpts, AggregatedPrice, RawQuote};
 /// Returns `None` when fewer than `opts.min_sources` quotes survive the
 /// stale + outlier filters — callers should keep showing the last cached
 /// price and surface a "stale" indicator to the user.
-pub fn aggregate(
-    quotes: Vec<RawQuote>,
-    opts: &AggregateOpts,
-    now: u64,
-) -> Option<AggregatedPrice> {
+pub fn aggregate(quotes: Vec<RawQuote>, opts: &AggregateOpts, now: u64) -> Option<AggregatedPrice> {
     if quotes.is_empty() {
         return None;
     }

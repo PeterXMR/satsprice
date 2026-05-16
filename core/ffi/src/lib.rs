@@ -101,8 +101,7 @@ impl SatsPriceCore {
             min_sources: 1,
             ..AggregateOpts::default()
         };
-        let aggregated = aggregate(quotes, &opts, now)
-            .ok_or(FfiError::InsufficientSources(got))?;
+        let aggregated = aggregate(quotes, &opts, now).ok_or(FfiError::InsufficientSources(got))?;
         self.cache.put(&fiat, aggregated.clone()).await;
         Ok(snapshot_from_aggregated(aggregated, false))
     }
@@ -140,11 +139,10 @@ impl SatsPriceCore {
     /// * Long tail (PYG, UYU, KES, …): Coingecko only → single-source feed
     pub fn supported_fiats(&self) -> Vec<String> {
         [
-            "aed", "ars", "aud", "brl", "cad", "chf", "clp", "cny", "cop", "czk",
-            "dkk", "egp", "eur", "gbp", "hkd", "huf", "idr", "ils", "inr", "jpy",
-            "kes", "krw", "mxn", "myr", "ngn", "nok", "nzd", "pen", "php", "pln",
-            "pyg", "ron", "rub", "sar", "sek", "sgd", "thb", "try", "twd", "uah",
-            "usd", "uyu", "vnd", "zar",
+            "aed", "ars", "aud", "brl", "cad", "chf", "clp", "cny", "cop", "czk", "dkk", "egp",
+            "eur", "gbp", "hkd", "huf", "idr", "ils", "inr", "jpy", "kes", "krw", "mxn", "myr",
+            "ngn", "nok", "nzd", "pen", "php", "pln", "pyg", "ron", "rub", "sar", "sek", "sgd",
+            "thb", "try", "twd", "uah", "usd", "uyu", "vnd", "zar",
         ]
         .iter()
         .map(|s| (*s).to_string())
