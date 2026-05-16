@@ -63,8 +63,8 @@ impl PriceSource for CoingeckoSource {
             .get(&fiat_lc)
             .copied()
             .ok_or_else(|| SourceError::Parse(format!("missing bitcoin.{fiat_lc}")))?;
-        let price = Decimal::try_from(raw)
-            .map_err(|e| SourceError::Parse(format!("bad number: {e}")))?;
+        let price =
+            Decimal::try_from(raw).map_err(|e| SourceError::Parse(format!("bad number: {e}")))?;
         Ok(RawQuote {
             source: "coingecko".into(),
             fiat: fiat_lc,

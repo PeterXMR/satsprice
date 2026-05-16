@@ -13,7 +13,7 @@ pub fn median(values: &[Decimal]) -> Option<Decimal> {
     let mut sorted: Vec<Decimal> = values.to_vec();
     sorted.sort();
     let mid = sorted.len() / 2;
-    if sorted.len().is_multiple_of(2) {
+    if sorted.len() % 2 == 0 {
         Some((sorted[mid - 1] + sorted[mid]) / Decimal::from(2))
     } else {
         Some(sorted[mid])
