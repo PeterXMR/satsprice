@@ -140,6 +140,8 @@ fun ConverterScreen(
                 onSatsChange = { vm.setInput(InputSource.Sats, it) },
                 onBtcChange = { vm.setInput(InputSource.Btc, it) },
                 onUnitSelect = vm::selectBitcoinUnit,
+                autoFocusOnFirstShow = !vm.hasShownInitialKeyboard,
+                onAutoFocusConsumed = { vm.hasShownInitialKeyboard = true },
             )
 
             vm.selectedFiats.forEach { fiat ->
@@ -265,9 +267,6 @@ private fun AmountField(
  * The merged Bitcoin section — sats and BTC are the same currency in different
  * units. A SegmentedButton between them picks which side is editable; the
  * other side mirrors the canonical value as a read-only display.
- *
- * Tapping a segment immediately moves focus to that field so the keyboard
- * opens without a second tap.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -278,16 +277,20 @@ private fun BitcoinSection(
     onSatsChange: (String) -> Unit,
     onBtcChange: (String) -> Unit,
     onUnitSelect: (BitcoinUnit) -> Unit,
+    autoFocusOnFirstShow: Boolean,
+    onAutoFocusConsumed: () -> Unit,
 ) {
     val satsFocus = remember { FocusRequester() }
     val btcFocus = remember { FocusRequester() }
-    LaunchedEffect(activeUnit) {
+    LaunchedEffect(Unit) {
+        if (!autoFocusOnFirstShow) return@LaunchedEffect
         runCatching {
             when (activeUnit) {
                 BitcoinUnit.SATS -> satsFocus.requestFocus()
                 BitcoinUnit.BTC -> btcFocus.requestFocus()
             }
         }
+        onAutoFocusConsumed()
     }
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),

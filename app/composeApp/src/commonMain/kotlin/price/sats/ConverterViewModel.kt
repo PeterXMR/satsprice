@@ -67,6 +67,13 @@ class ConverterViewModel(
 
     val supportedFiats: List<String> = core.supportedFiats()
 
+    /**
+     * Lifetime flag: has the initial auto-focus (the cold-start keyboard pop
+     * on the Sats field) already fired? Lives in the VM, not the composable,
+     * so navigating away and back to Converter doesn't re-trigger it.
+     */
+    var hasShownInitialKeyboard: Boolean = false
+
     val isAnyLoading: Boolean
         get() = loadingFiats.any { it.value }
 
