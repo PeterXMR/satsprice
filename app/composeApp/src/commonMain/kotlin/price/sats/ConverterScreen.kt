@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -65,7 +66,10 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConverterScreen(vm: ConverterViewModel = koinViewModel()) {
+fun ConverterScreen(
+    vm: ConverterViewModel = koinViewModel(),
+    onMenuClick: () -> Unit = {},
+) {
     var pickerOpen by remember { mutableStateOf(false) }
     val systemDark = isSystemInDarkTheme()
     val effectiveDark = vm.themeOverride ?: systemDark
@@ -80,6 +84,11 @@ fun ConverterScreen(vm: ConverterViewModel = koinViewModel()) {
         topBar = {
             TopAppBar(
                 title = { Text("SatsPrice") },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Open menu")
+                    }
+                },
                 actions = {
                     IconButton(onClick = { vm.toggleTheme(systemDark) }) {
                         Icon(

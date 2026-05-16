@@ -147,6 +147,27 @@ class ConverterViewModel(
         prefs.setThemeOverride(next)
     }
 
+    /** Settings-screen explicit set: null = follow system. */
+    fun applyThemeMode(value: Boolean?) {
+        themeOverride = value
+        prefs.setThemeOverride(value)
+    }
+
+    /** Settings-screen "Reset to USD only" — wipes all selected fiats back to default. */
+    fun resetSelectedFiats() {
+        selectedFiats.clear()
+        selectedFiats.add("usd")
+        prefs.setSelectedFiats(selectedFiats.toList())
+        if ((inputSource as? InputSource.Fiat)?.code != null &&
+            (inputSource as InputSource.Fiat).code != "usd") {
+            inputSource = InputSource.Sats
+            inputAmount = "100000000"
+            prefs.setInputSource(inputSource)
+            prefs.setInputAmount(inputAmount)
+        }
+        viewModelScope.launch { loadPrice("usd") }
+    }
+
     /**
      * Switch which Bitcoin unit's field is editable. Sets the input source
      * to that unit and converts the current canonical sats value into the
