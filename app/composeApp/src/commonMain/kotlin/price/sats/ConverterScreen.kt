@@ -296,14 +296,6 @@ private fun BitcoinSection(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        AmountField(
-            label = "Sats",
-            value = satsValue,
-            onChange = onSatsChange,
-            keyboardType = KeyboardType.Number,
-            readOnly = activeUnit != BitcoinUnit.SATS,
-            focusRequester = satsFocus,
-        )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
                 selected = activeUnit == BitcoinUnit.SATS,
@@ -316,14 +308,22 @@ private fun BitcoinSection(
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
             ) { Text("BTC") }
         }
-        AmountField(
-            label = "BTC",
-            value = btcValue,
-            onChange = onBtcChange,
-            keyboardType = KeyboardType.Decimal,
-            readOnly = activeUnit != BitcoinUnit.BTC,
-            focusRequester = btcFocus,
-        )
+        when (activeUnit) {
+            BitcoinUnit.SATS -> AmountField(
+                label = "Sats",
+                value = satsValue,
+                onChange = onSatsChange,
+                keyboardType = KeyboardType.Number,
+                focusRequester = satsFocus,
+            )
+            BitcoinUnit.BTC -> AmountField(
+                label = "BTC",
+                value = btcValue,
+                onChange = onBtcChange,
+                keyboardType = KeyboardType.Decimal,
+                focusRequester = btcFocus,
+            )
+        }
     }
 }
 
