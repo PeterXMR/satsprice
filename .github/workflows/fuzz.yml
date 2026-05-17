@@ -36,23 +36,23 @@ jobs:
       matrix:
         target: [coinbase, kraken, bitstamp, coingecko]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       # cargo-fuzz builds with `-Zbuild-std` + address sanitizer, which needs
       # the `rust-src` component to compile std with the instrumentation. The
       # default minimal nightly profile doesn't ship it.
       - name: Install Rust nightly (required by cargo-fuzz)
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@5b842231ba77f5c045dba54ac5560fed2db780e2 # nightly
         with:
           components: rust-src
 
       - name: Cache fuzz build artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           workspaces: core/price-sources/fuzz
 
       - name: Install cargo-fuzz (prebuilt)
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@3771e22aa892e03fd35585fae288baad1755695c # v2.78.2
         with:
           tool: cargo-fuzz
 
@@ -78,7 +78,7 @@ jobs:
       # if the fuzz step failed so a maintainer can reproduce locally.
       - name: Upload crash artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fuzz-artifacts-${{ matrix.target }}-${{ github.run_id }}
           path: core/price-sources/fuzz/artifacts/
