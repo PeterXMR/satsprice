@@ -1,0 +1,72 @@
+name: Security
+
+# Two complementary gates on the Rust supply chain:
+#   - cargo-deny:  license policy + duplicate/source bans (config: deny.toml)
+#   - cargo-audit: RustSec advisory DB CVE check against core/Cargo.lock
+#
+# Lives in a separate workflow from android.yml on purpose: faster signal,
+# clearer required-check naming, and the schedule trigger doesn't need to
+# drag a full Android build along for the ride.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Weekly sweep: catches advisories filed against deps that haven't changed
+  # in our Cargo.lock since the last commit. Monday 06:00 UTC is quiet hours
+  # for most contributors and lines up with the start of the work week.
+  schedule:
+    - cron: '0 6 * * 1'
+
+# Cancel superseded PR runs; keep main-branch and scheduled runs to completion
+# so security history isn't gappy.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  cargo-deny:
+    name: cargo-deny (licenses, bans, sources, advisories)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build (core workspace)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      # Prebuilt binary — same pattern as android.yml uses for cargo-ndk.
+      # Avoids a 2+ minute source build every run.
+      - name: Install cargo-deny (prebuilt)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: Run cargo-deny check
+        run: cargo deny --manifest-path core/Cargo.toml check
+
+  cargo-audit:
+    name: cargo-audit (RustSec advisory DB)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # audit-check posts findings to the Checks tab; SARIF/issue creation
+      # needs write on issues & checks. security-events is the GitHub Code
+      # Scanning surface; harmless if the action doesn't emit SARIF.
+      issues: write
+      checks: write
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run cargo-audit
+        uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: core

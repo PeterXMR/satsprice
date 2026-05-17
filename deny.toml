@@ -1,0 +1,116 @@
+# cargo-deny configuration for satsprice.
+#
+# Why we care: this app ships under GPL-3.0-or-later. Every Rust dep we link
+# into the shipped .so is redistributed, so a transitive crate under an
+# incompatible license (AGPL, proprietary, missing) would silently violate
+# the project's license terms. This file is the gate that catches it in CI
+# before it reaches a release tag.
+#
+# Reference: https://embarkstudios.github.io/cargo-deny/
+
+# ---------------------------------------------------------------------------
+# [graph]
+# Evaluate the dependency graph as it would be built for what actually ships
+# in the APK — the 4 Android ABIs — rather than the CI host (linux x86_64).
+# Otherwise host-only deps (e.g. Linux-only TLS bits) would skew license
+# results and Android-only deps would be missed.
+# ---------------------------------------------------------------------------
+[graph]
+targets = [
+    { triple = "aarch64-linux-android" },
+    { triple = "armv7-linux-androideabi" },
+    { triple = "x86_64-linux-android" },
+    { triple = "i686-linux-android" },
+]
+all-features = false
+no-default-features = false
+
+# ---------------------------------------------------------------------------
+# [advisories]
+# Cross-checks the lockfile against the RustSec advisory DB. cargo-audit runs
+# the same DB; this section makes `cargo deny check advisories` a one-stop
+# gate so a single workflow can enforce both license and CVE policy.
+# ---------------------------------------------------------------------------
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# Yanked crates often correlate with known-bad releases — treat as hard fail.
+yanked = "deny"
+# Unmaintained: warn only on the workspace's own deps, not the whole graph;
+# avoids noise from rarely-updated transitive deps we don't control.
+unmaintained = "workspace"
+# Add advisory IDs here only with a justification comment, e.g.:
+#   "RUSTSEC-YYYY-NNNN",  # <reason this is acceptable; remove by <date>>
+ignore = []
+
+# ---------------------------------------------------------------------------
+# [licenses]
+# Allowlist approach: explicit list of SPDX identifiers we accept. Anything
+# else fails the check and forces a conscious decision (add it here with a
+# comment, or replace the dep).
+#
+# Notes on the contentious ones:
+#   - MPL-2.0     — GPL-compatible per Mozilla's own FAQ. File-level copyleft;
+#                   linking into a GPL binary is fine.
+#   - OpenSSL    — the historic OpenSSL license was GPL-incompatible. Since
+#                   the OpenSSL 3.0 relicense to Apache-2.0 (Sep 2021), this
+#                   is a non-issue. Kept on the list defensively because some
+#                   crates still carry dual MIT/OpenSSL metadata.
+#   - Unicode-* — covers ICU / unicode-ident family; permissive, GPL-OK.
+#   - CC0-1.0   — public-domain-equivalent; appears on a handful of small
+#                   utility crates (e.g. notify, tiny-keccak).
+#   - CDLA-Permissive-2.0
+#               — Linux Foundation's Community Data License Agreement, used
+#                 by `webpki-roots` for the bundled trust-root data set. It's
+#                 essentially MIT-equivalent for data (permissive, attribution
+#                 required, no copyleft) and is GPL-compatible. We pull it
+#                 transitively via reqwest's `rustls-tls-webpki-roots`.
+# ---------------------------------------------------------------------------
+[licenses]
+# 0.93 is cargo-deny's recommended default; below that the SPDX matcher hedges.
+confidence-threshold = 0.93
+allow = [
+    "MIT",                              # by far the most common
+    "Apache-2.0",                       # second most common
+    "Apache-2.0 WITH LLVM-exception",   # rustc/llvm-derived crates
+    "BSD-2-Clause",                     # permissive, GPL-compatible
+    "BSD-3-Clause",                     # permissive, GPL-compatible
+    "ISC",                              # OpenBSD-style; permissive
+    "Unicode-DFS-2016",                 # older unicode-ident releases
+    "Unicode-3.0",                      # newer unicode-ident releases
+    "MPL-2.0",                          # GPL-compatible (Mozilla FAQ)
+    "CC0-1.0",                          # public-domain equivalent
+    "Zlib",                             # permissive, GPL-compatible
+    "Unlicense",                        # public-domain equivalent
+    "GPL-3.0-or-later",                 # our own crates
+    "OpenSSL",                          # historic; mostly subsumed by Apache-2.0 post-relicense
+    "CDLA-Permissive-2.0",              # webpki-roots trust-data bundle (LF CDLA; GPL-compatible)
+]
+# Per-crate exceptions go here, e.g.:
+#   { allow = ["SomethingWeird"], crate = "weird-crate" }
+exceptions = []
+
+# ---------------------------------------------------------------------------
+# [bans]
+# Duplicate-version policy. Set to "warn" for the first run because the
+# graph almost always has *some* duplicate (e.g. `syn` 1.x and 2.x during
+# the ecosystem transition). Tighten to "deny" later once the graph is clean.
+# ---------------------------------------------------------------------------
+[bans]
+multiple-versions = "warn"
+# Workspace deps in this repo use wildcard versions in places; allow them
+# rather than mass-rewrite for cargo-deny's sake.
+wildcards = "allow"
+highlight = "all"
+
+# ---------------------------------------------------------------------------
+# [sources]
+# Lock down where crates can come from. Refuse unknown registries and any
+# git dep we haven't explicitly approved — protects against typosquats and
+# unaudited forks sneaking into the supply chain.
+# ---------------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

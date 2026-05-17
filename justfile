@@ -30,6 +30,16 @@ fmt-check:
 fmt:
     cargo fmt --manifest-path core/Cargo.toml --all
 
+# ---- Supply chain ----
+
+# Enforce license policy + duplicate/source bans (config: deny.toml)
+deny:
+    cargo deny --manifest-path core/Cargo.toml check
+
+# Check core/Cargo.lock against the RustSec advisory DB
+audit:
+    cargo audit --file core/Cargo.lock
+
 # ---- Cross-compile for Android ----
 
 # Build .so for all 4 Android ABIs (release). Output: app/android/src/main/jniLibs/<abi>/
