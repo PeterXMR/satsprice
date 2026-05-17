@@ -38,8 +38,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # cargo-fuzz builds with `-Zbuild-std` + address sanitizer, which needs
+      # the `rust-src` component to compile std with the instrumentation. The
+      # default minimal nightly profile doesn't ship it.
       - name: Install Rust nightly (required by cargo-fuzz)
         uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
 
       - name: Cache fuzz build artifacts
         uses: Swatinem/rust-cache@v2
