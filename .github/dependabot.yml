@@ -1,0 +1,55 @@
+# Dependabot keeps three ecosystems current:
+#   - cargo: the Rust core workspace
+#   - gradle: the Kotlin Multiplatform app
+#   - github-actions: keeps the SHA pins in workflows/ fresh
+#
+# Minor + patch updates are grouped per ecosystem to cut PR noise; majors
+# still come through as individual PRs so they get explicit review.
+# Security updates are intentionally not configured here — they are on by
+# default and we don't want to suppress them.
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/core"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+    groups:
+      cargo-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "gradle"
+    directory: "/app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+    groups:
+      gradle-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
