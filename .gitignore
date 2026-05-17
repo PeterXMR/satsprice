@@ -45,6 +45,9 @@ app/ios/SatsPriceCore.xcframework/
 *~
 .vscode/
 
+# Claude Code session storage (worktrees, transcripts) — never commit
+.claude/
+
 # Secrets / signing — never commit
 *.keystore
 *.jks
