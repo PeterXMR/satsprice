@@ -14,6 +14,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
+# Reproducible-builds plumbing. SOURCE_DATE_EPOCH is a de-facto standard
+# (https://reproducible-builds.org/docs/source-date-epoch/) read by many
+# build tools to stamp deterministic timestamps instead of wall-clock time.
+# We compute it per-job from the head commit so a re-run of the same SHA
+# produces an identical APK. See docs/REPRODUCIBLE-BUILDS.md.
 jobs:
   build:
     name: Build debug APK
@@ -24,6 +29,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      # Deterministic build timestamp derived from the head commit. Picked up
+      # by anything that honors SOURCE_DATE_EPOCH (including rustc's debuginfo
+      # paths and many archivers). Re-runs of the same SHA produce the same
+      # APK; tag pushes use the tagged commit's own timestamp.
+      - name: Set SOURCE_DATE_EPOCH
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> $GITHUB_ENV
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -60,9 +72,18 @@ jobs:
       - name: Set up Gradle (caches ~/.gradle)
         uses: gradle/actions/setup-gradle@v3
 
+      # --remap-path-prefix scrubs runner-specific absolute paths ($HOME and
+      # $GITHUB_WORKSPACE) out of the compiled .so files, replacing them with
+      # stable placeholders. Without this, debuginfo and panic strings embed
+      # paths like /home/runner/work/satsprice/satsprice/... and
+      # /home/runner/.cargo/registry/... that differ between machines and
+      # break bit-for-bit reproducibility. Passed via RUSTFLAGS (these are
+      # rustc flags; cargo's `--` only forwards args to the built binary,
+      # not to the compiler).
       - name: Build Rust core for 4 Android ABIs
         working-directory: core/ffi
         run: |
+          export RUSTFLAGS="--remap-path-prefix $HOME=/home/builder --remap-path-prefix $GITHUB_WORKSPACE=/build"
           cargo ndk \
             -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 \
             -o ../../app/android/src/main/jniLibs \

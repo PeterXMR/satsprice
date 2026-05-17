@@ -1,0 +1,11 @@
+Initial release.
+
+- Sats / BTC <-> fiat conversion in a single screen, with an inline
+  Sats/BTC selector on the input field.
+- Multi-source price aggregation across Coinbase, Kraken, Coingecko,
+  and Bitstamp, combined via median with sigma-rejection.
+- Navigation drawer: Converter, Price sources, Settings, About.
+- Settings: light / dark / follow-system theme, reset selected fiats.
+- Background refresh every ~65s; last-known price cached locally for
+  offline use.
+- All on-device. No backend, no accounts, no analytics, no tracking.
