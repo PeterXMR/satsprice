@@ -1,0 +1,5 @@
+SatsPrice is a Bitcoin price ticker and sats <-> fiat converter that runs entirely on your device. Prices are fetched directly from multiple public exchanges and aggregators (Coinbase, Kraken, Coingecko, Bitstamp) and combined via a median with sigma-rejection so a single mispriced source can't skew the result. Convert between sats, BTC, and any of the supported fiat currencies in a single screen.
+
+There is no backend. The app talks directly to the exchanges you choose, with no intermediate server collecting your queries, your currency preferences, or your IP. No accounts, no analytics, no third-party SDKs, no tracking, no ads. The only network traffic is the price fetches themselves, and the last-known price is cached locally so the app still works briefly when offline.
+
+Under the hood the price aggregation, decimal math, and caching live in a shared Rust core compiled to a native library; the UI is Kotlin Multiplatform + Compose. The full source is published under GPL-3.0-or-later and the build is set up for reproducibility so anyone can verify the published APK matches the source.

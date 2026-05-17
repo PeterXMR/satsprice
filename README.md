@@ -42,6 +42,24 @@ just build-ios         # build .xcframework (Mac + full Xcode required)
 just run-android       # install + launch on connected device/emulator
 ```
 
+## Installing
+
+Three install paths, all directly from this repo's GitHub Releases — no
+intermediate store, no account, no telemetry:
+
+- **[Obtainium](https://obtainium.imranr.dev/)** (auto-updating sideload):
+  add the app by pasting `https://github.com/PeterXMR/satsprice` into
+  Obtainium's "Add app" field. It will track new releases as they're tagged
+  and offer updates.
+- **F-Droid**: planned. The repo ships [Fastlane
+  metadata](fastlane/metadata/android/en-US/) and is set up for
+  [reproducible builds](docs/REPRODUCIBLE-BUILDS.md); the inclusion request
+  will be filed once a signed release lands.
+- **Manual sideload**: download the latest `SatsPrice-vX.Y.Z.apk` from
+  [Releases](https://github.com/PeterXMR/satsprice/releases) and install it
+  with your file manager (you may need to enable "Install unknown apps" for
+  the source app).
+
 ## Releasing
 
 Tag pushes (`vX.Y.Z` or `vX.Y.Z-suffix`) auto-publish a GitHub Release with
