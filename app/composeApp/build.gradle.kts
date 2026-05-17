@@ -64,12 +64,49 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // Release signing is driven entirely by env vars so the keystore + passwords
+    // never live in version control. Local builds without these vars set fall
+    // through to an unsigned release APK (which Gradle is happy to produce —
+    // it just can't be installed without manual `apksigner` work). CI populates
+    // them from GitHub secrets (see .github/workflows/release.yml).
+    val releaseKeystorePath: String? = System.getenv("RELEASE_KEYSTORE_PATH")
+    val releaseKeystorePassword: String? = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+    val releaseKeyAlias: String? = System.getenv("RELEASE_KEY_ALIAS")
+    val releaseKeyPassword: String? = System.getenv("RELEASE_KEY_PASSWORD")
+    val releaseSigningConfigured = !releaseKeystorePath.isNullOrBlank() &&
+        !releaseKeystorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
         }
         release {
-            isMinifyEnabled = false  // R8 rules for UniFFI/JNA come in Phase 13
+            // Phase 13: R8 on. Keep-rules in proguard-rules.pro protect the
+            // UniFFI bindings and JNA reflection paths that R8 cannot see
+            // statically. `proguard-android-optimize.txt` is AGP's tuned
+            // default and includes the Compose / Kotlin / AndroidX rules.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }

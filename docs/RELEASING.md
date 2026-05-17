@@ -80,39 +80,84 @@ The CI workflow does exactly this, just with GitHub-hosted runners.
 
 ## What this build is NOT (yet)
 
-The APK produced by the current workflow is **a debug build**. That's fine
-for sideloading on your own devices and sharing with testers, but it isn't
-production-grade for these reasons:
+The APK that [android.yml](../.github/workflows/android.yml) attaches to a
+GitHub Release is still **a debug build** — fine for sideloading and ad-hoc
+testing, not Play Store quality. Phase 13 (this section) added the missing
+machinery for *signed* release builds; the only remaining gap is the keystore
+itself.
 
-- **Debug-signed.** Signed with the Android debug keystore (auto-generated
-  per machine / CI runner). A given install path is uninstallable when the
-  signing certificate changes. Play Store will refuse it.
-- **No R8 / ProGuard.** `app/composeApp/build.gradle.kts` sets
-  `isMinifyEnabled = false` for the release variant with the comment
-  *"R8 rules for UniFFI/JNA come in Phase 13"* — the keep-rules that
-  prevent reflection-loaded native bridges from being stripped haven't been
-  written. Enabling R8 today would break UniFFI at runtime.
-- **`buildType` is `debug`.** Slower, larger, and includes assertions.
+State of the world as of Phase 13:
 
-## Roadmap to production-quality releases
+- **Debug-signed (`android.yml`).** The original workflow still uploads a
+  debug-signed APK on tags. It's the fallback when signing secrets aren't
+  configured.
+- **R8 + keep-rules: DONE.** `app/composeApp/build.gradle.kts` now sets
+  `isMinifyEnabled = true` + `isShrinkResources = true` on the release variant,
+  with keep-rules in [`app/composeApp/proguard-rules.pro`](../app/composeApp/proguard-rules.pro)
+  protecting UniFFI's generated `price.sats.core.*` bindings and JNA's
+  reflection-loaded `Structure` / `Callback` paths. Rules mirror Mozilla's
+  battle-tested `application-services` consumer rules.
+- **Signing config: DONE.** A `signingConfigs.release` block reads from env
+  vars (`RELEASE_KEYSTORE_PATH`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
+  `RELEASE_KEY_PASSWORD`) and is wired to the release build type — but only
+  when all four env vars are non-empty, so local `assembleDebug` still works
+  with zero setup.
+- **Signed release workflow: DONE.** [`release.yml`](../.github/workflows/release.yml)
+  fires on tag pushes, decodes the keystore secret, and produces a signed APK
+  + AAB. It's guarded by `vars.RELEASE_SIGNING_ENABLED == 'true'`, so the job
+  is skipped (not failed) until the maintainer opts in by adding the secrets
+  below.
 
-Roughly in order of dependency:
+## Enabling signed releases (one-time setup)
 
-1. **Generate a release keystore.** `keytool -genkey -v -keystore satsprice-release.jks -alias satsprice ...`. Store the file + alias + passwords as GitHub repo secrets (`RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, etc.).
-2. **Add a `signingConfigs { release { ... } }` block** to [app/composeApp/build.gradle.kts](../app/composeApp/build.gradle.kts) that reads from `System.getenv()` so CI can supply the secrets without committing them.
-3. **Write R8 keep-rules** for UniFFI's generated bindings and JNA's reflection-loaded native methods. Site: `app/composeApp/proguard-rules.pro` (new file).
-4. **Flip `isMinifyEnabled = true`** on the release variant once R8 rules are in place. Verify the release APK still passes the same emulator smoke tests as debug.
-5. **Update the workflow** to:
-   - Build `assembleRelease` instead of `assembleDebug` when a tag is pushed.
-   - Decode the keystore from `RELEASE_KEYSTORE_BASE64` into a file before the gradle step.
-   - Provide signing env vars during `assembleRelease`.
-6. **Match `applicationId`** when graduating to Play Store. Today the id is
-   `price.sats` — confirm that's the intended production identifier before
-   publishing, because once on Play Store it can't change without orphaning
-   the app's reviews and installs.
+1. **Generate a keystore** locally. Keep this file safe — losing it means you
+   can never publish a non-breaking update on Play Store.
 
-Until those land, every release is effectively a "debug release" — fine for
-demos and direct distribution, not for the store.
+   ```sh
+   keytool -genkeypair -v \
+     -keystore satsprice-release.jks \
+     -alias satsprice \
+     -keyalg RSA -keysize 4096 -validity 10000
+   ```
+
+2. **Base64-encode it** so it fits in a GitHub Actions secret:
+
+   ```sh
+   base64 -i satsprice-release.jks | tr -d '\n' > satsprice-release.jks.b64
+   ```
+
+3. **Add the secrets** under Settings → Secrets and variables → Actions →
+   *Repository secrets*:
+
+   | Secret | Value |
+   |---|---|
+   | `RELEASE_KEYSTORE_BASE64` | Contents of `satsprice-release.jks.b64` |
+   | `RELEASE_KEYSTORE_PASSWORD` | The keystore password from `keytool` |
+   | `RELEASE_KEY_ALIAS` | `satsprice` (or whatever alias you chose) |
+   | `RELEASE_KEY_PASSWORD` | The key password from `keytool` (often same as keystore password) |
+
+4. **Set the variable** under the same page → *Variables* tab:
+
+   | Variable | Value |
+   |---|---|
+   | `RELEASE_SIGNING_ENABLED` | `true` |
+
+5. **Push a tag.** The next `v*` tag will trigger `release.yml`, which produces
+   `SatsPrice-vX.Y.Z.apk` + `SatsPrice-vX.Y.Z.aab` and attaches them to the
+   GitHub Release alongside the debug APK from `android.yml`.
+
+## Roadmap to Play Store
+
+Remaining items for actual Play Store distribution:
+
+1. **Confirm `applicationId`** before first publish. Today the id is
+   `price.sats` — once on Play Store it can't change without orphaning the
+   app's reviews and installs. Verify this is the production identifier.
+2. **Drop the debug-APK release step from `android.yml`** once `release.yml`
+   has produced at least one signed build successfully. Keeping both during
+   the transition gives a known-good fallback.
+3. **Upload the AAB to Play Console** (manually for the first release, then
+   consider `r0adkll/upload-google-play` to automate).
 
 ## CI architecture quick reference
 
