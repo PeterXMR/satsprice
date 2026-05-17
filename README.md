@@ -48,7 +48,7 @@ Three install paths, all directly from this repo's GitHub Releases — no
 intermediate store, no account, no telemetry:
 
 - **[Obtainium](https://obtainium.imranr.dev/)** (auto-updating sideload):
-  add the app by pasting `https://github.com/PeterXMR/satsprice` into
+  add the app by pasting `https://github.com/PeterXMR/spotprice` into
   Obtainium's "Add app" field. It will track new releases as they're tagged
   and offer updates.
 - **F-Droid**: planned. The repo ships [Fastlane
@@ -56,7 +56,7 @@ intermediate store, no account, no telemetry:
   [reproducible builds](docs/REPRODUCIBLE-BUILDS.md); the inclusion request
   will be filed once a signed release lands.
 - **Manual sideload**: download the latest `SpotPrice-vX.Y.Z.apk` from
-  [Releases](https://github.com/PeterXMR/satsprice/releases) and install it
+  [Releases](https://github.com/PeterXMR/spotprice/releases) and install it
   with your file manager (you may need to enable "Install unknown apps" for
   the source app).
 

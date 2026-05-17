@@ -79,7 +79,7 @@ jobs:
       # --remap-path-prefix scrubs runner-specific absolute paths ($HOME and
       # $GITHUB_WORKSPACE) out of the compiled .so files, replacing them with
       # stable placeholders. Without this, debuginfo and panic strings embed
-      # paths like /home/runner/work/satsprice/satsprice/... and
+      # paths like /home/runner/work/spotprice/spotprice/... and
       # /home/runner/.cargo/registry/... that differ between machines and
       # break bit-for-bit reproducibility. Passed via RUSTFLAGS (these are
       # rustc flags; cargo's `--` only forwards args to the built binary,

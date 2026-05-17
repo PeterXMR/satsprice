@@ -54,7 +54,7 @@ That's it. The workflow:
    release notes from the commits since the previous tag.
 5. Attaches the APK as a release asset.
 
-Find the published release under [Releases](https://github.com/PeterXMR/satsprice/releases).
+Find the published release under [Releases](https://github.com/PeterXMR/spotprice/releases).
 
 ## Publishing a release manually (CI bypass)
 
