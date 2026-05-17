@@ -74,7 +74,7 @@ jobs:
 
       - name: Assemble debug APK
         working-directory: app
-        run: ./gradlew :composeApp:assembleDebug --no-daemon
+        run: ./gradlew :composeApp:assembleDebug --no-daemon --stacktrace --info
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
